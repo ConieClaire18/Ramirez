@@ -1,163 +1,225 @@
 import streamlit as st
-from PIL import Image
-from datetime import datetime
+import os
 
-# Initialize session state for biographies and dynamic fields
-def init_session_state():
-    if "biographies" not in st.session_state:
-        st.session_state["biographies"] = []
-    if "dynamic_fields" not in st.session_state:
-        st.session_state["dynamic_fields"] = {}
+# Initialize session state for biography data
+def initialize_bio_data():
+    if "bio_data" not in st.session_state:
+        st.session_state.bio_data = {
+            "name": "Conie Claire Ramirez",  # Default name
+            "age": 18,  # Default age
+            "birthdate": "August 17, 2006",  # Default birthdate
+            "address": "San Isidro, Surigao City",  # Default address
+            "bio": "",
+            "elementary": [{"school": "San Isidro Elementary School", "year": "2014-2018"}],
+            "high_school": [{"school": "Mainit National High School", "year": "2018-2022"}],
+            "senior_high": [{"school": "Surigao del Norte National High School", "year": "2022-2024"}],
+            "college": [{"school": "Surigao del Norte State University", "year": "2024-2028"}],
+            "seminars_attended": [
+                {"seminar": "Leadership Training", "year": "2019"},
+                {"seminar": "Church Training", "year": "2022"}
+            ],
+            "accomplishments": [
+                "Graduated with Honors",
+                "Passed the Entrance Exam and Interview"
+            ],
+            "image": None,
+        }
 
-# Function to calculate age based on birthdate
-def calculate_age(birthdate):
-    today = datetime.today()
-    birth_date = datetime.strptime(birthdate, "%Y-%m-%d")
-    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    return age
+# Function to create the biography string for download
+def create_bio_string():
+    bio_data = st.session_state.bio_data
+    bio_str = f"Name: {bio_data['name']}\n"
+    bio_str += f"Age: {bio_data['age']}\n"
+    bio_str += f"Birthdate: {bio_data['birthdate']}\n"
+    bio_str += f"Address: {bio_data['address']}\n"
+    bio_str += f"Biography: {bio_data['bio']}\n\n"
+    
+    bio_str += "Educational Attainment:\n"
+    for edu in bio_data.get("elementary", []):
+        bio_str += f"  - Elementary: {edu['school']} ({edu['year']})\n"
+    for edu in bio_data.get("high_school", []):
+        bio_str += f"  - High School: {edu['school']} ({edu['year']})\n"
+    for edu in bio_data.get("senior_high", []):
+        bio_str += f"  - Senior High: {edu['school']} ({edu['year']})\n"
+    for edu in bio_data.get("college", []):
+        bio_str += f"  - College: {edu['school']} ({edu['year']})\n"
+    
+    bio_str += "\nSeminars Attended:\n"
+    for seminar in bio_data.get("seminars_attended", []):
+        bio_str += f"  - {seminar['seminar']} ({seminar['year']})\n"
+    
+    bio_str += "\nAccomplishments:\n"
+    for acc in bio_data.get("accomplishments", []):
+        bio_str += f"  - {acc}\n"
+    
+    return bio_str
 
-# Add a new biography with dynamic fields
-def add_biography():
-    st.title("Add a New Biography")
+# Streamlit application
+st.title("Biography")
 
-    with st.form("add_bio_form"):
-        # Select or specify biography type
-        bio_type = st.selectbox("Biography Type", ["Personal", "Professional", "Custom"])
-        if bio_type == "Custom":
-            bio_type = st.text_input("Enter Custom Biography Type")
+# Initialize biography data
+initialize_bio_data()
 
-        # Other biography details
-        photo = st.file_uploader("Upload a photo (JPG/PNG)", type=["jpg", "jpeg", "png"])
-        name = st.text_input("Name")
-        birthdate = st.date_input("Birthdate", datetime(2000, 1, 1))
-        address = st.text_input("Address")
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([ 
+    "Biography", 
+    "Educational Attainment", 
+    "Seminars Attended", 
+    "Accomplishments", 
+    "Upload Image", 
+    "View Biography"
+])
 
-        # Educational Attainment
-        st.subheader("Educational Attainment")
-        elementary = st.text_input("Elementary School")
-        high_school = st.text_input("High School")
-        senior_high = st.text_input("Senior High School")
+with tab1:
+    st.subheader("Personal Biography")
+    st.session_state.bio_data["name"] = st.text_input("Name", value=st.session_state.bio_data.get("name", ""))
+    st.session_state.bio_data["age"] = st.number_input("Age", value=st.session_state.bio_data.get("age", 0), min_value=0)
+    st.session_state.bio_data["birthdate"] = st.text_input("Birthdate", value=st.session_state.bio_data.get("birthdate", ""))
+    
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Save Biography"):
+            st.success("Biography saved successfully!")
 
-        # Seminars and Accomplishments
-        st.subheader("Seminars Attended")
-        seminars = st.text_area("Enter seminars attended, one per line")
-        st.subheader("Accomplishments")
-        accomplishments = st.text_area("Enter accomplishments, one per line")
+with tab2:
+    st.subheader("Educational Attainment")
+    
+    # Editable fields to add new educational records
+    st.write("### Add Educational Records")
 
-        # Skills and Hobbies
-        st.subheader("Skills")
-        skills = st.text_area("Enter your skills, one per line")
-        st.subheader("Hobbies")
-        hobbies = st.text_area("Enter your hobbies, one per line")
-
-        # Add custom fields dynamically
-        st.subheader("Add Custom Fields")
-        dynamic_field_name = st.text_input("Enter field name to add (e.g., 'Certifications', 'Languages', etc.)")
-        dynamic_field_value = st.text_area(f"Enter {dynamic_field_name} details")
-
-        # Store the dynamic field in session state
-        if dynamic_field_name and dynamic_field_value:
-            if dynamic_field_name not in st.session_state["dynamic_fields"]:
-                st.session_state["dynamic_fields"][dynamic_field_name] = []
-            st.session_state["dynamic_fields"][dynamic_field_name].append(dynamic_field_value)
-
-        # Submit Button
-        submitted = st.form_submit_button("Save Biography")
-        
-        if submitted:
-            new_biography = {
-                "type": bio_type,
-                "photo": photo.getvalue() if photo else None,
-                "name": name,
-                "birthdate": birthdate.strftime("%Y-%m-%d"),
-                "address": address,
-                "educational_attainment": {
-                    "Elementary": elementary,
-                    "High School": high_school,
-                    "Senior High School": senior_high,
-                },
-                "seminars_attended": [s.strip() for s in seminars.split("\n") if s.strip()],
-                "accomplishments": [a.strip() for a in accomplishments.split("\n") if a.strip()],
-                "skills": [s.strip() for s in skills.split("\n") if s.strip()],
-                "hobbies": [h.strip() for h in hobbies.split("\n") if h.strip()],
-            }
-            
-            # Add dynamic fields to biography
-            for field, values in st.session_state["dynamic_fields"].items():
-                new_biography[field] = values
-            
-            st.session_state["biographies"].append(new_biography)
-            st.success(f"{bio_type} biography added successfully!")
-
-# View all biographies grouped by type
-def view_all_biographies():
-    st.title("View All Biographies")
-
-    if not st.session_state["biographies"]:
-        st.info("No biographies added yet. Please add a biography first.")
-        return
-
-    # Group biographies by type
-    bio_types = set(bio["type"] for bio in st.session_state["biographies"])
-    for bio_type in sorted(bio_types):
-        st.header(f"{bio_type} Biographies")
-        bios_of_type = [bio for bio in st.session_state["biographies"] if bio["type"] == bio_type]
-
-        for index, bio in enumerate(bios_of_type):
-            st.subheader(f"{bio['name']}")
-            
-            # Layout: Photo on the left, details on the right
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                if bio["photo"]:
-                    st.image(bio["photo"], caption=f"{bio['name']}'s Photo", use_column_width=True)
-                else:
-                    st.info("No photo uploaded.")
-            
-            with col2:
-                st.write(f"**Name:** {bio['name']}")
-                st.write(f"**Birthdate:** {bio['birthdate']}")
-                st.write(f"**Age:** {calculate_age(bio['birthdate'])} years old")
-                st.write(f"**Address:** {bio['address']}")
+    # Function to display editable education records
+    def display_education_section(edu_type, edu_data_key):
+        with st.expander(edu_type):
+            for idx, edu in enumerate(st.session_state.bio_data.get(edu_data_key, [])):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    school_name = st.text_input(f"School Name ({edu_type})", value=edu["school"], key=f"school_{edu_data_key}_{idx}")
+                    year_attended = st.text_input(f"Year Attended ({edu_type})", value=edu["year"], key=f"year_{edu_data_key}_{idx}")
+                with col2:
+                    if st.button(f"Delete {edu_type} Record", key=f"delete_{edu_data_key}_{idx}"):
+                        st.session_state.bio_data[edu_data_key].remove(edu)
+                        st.experimental_rerun()
                 
-                st.write(f"**Elementary:** {bio['educational_attainment']['Elementary']}")
-                st.write(f"**High School:** {bio['educational_attainment']['High School']}")
-                st.write(f"**Senior High School:** {bio['educational_attainment']['Senior High School']}")
+                if school_name and year_attended:
+                    st.session_state.bio_data[edu_data_key][idx]["school"] = school_name
+                    st.session_state.bio_data[edu_data_key][idx]["year"] = year_attended
+                else:
+                    st.warning("Please provide both school name and year.")
+            
+            new_school = st.text_input(f"New School Name ({edu_type})", key=f"new_school_{edu_data_key}")
+            new_year = st.text_input(f"New Year ({edu_type})", key=f"new_year_{edu_data_key}")
+            if st.button(f"Add {edu_type} Record"):
+                if new_school and new_year:
+                    st.session_state.bio_data[edu_data_key].append({"school": new_school, "year": new_year})
+                    st.success(f"{edu_type} record added successfully!")
+                else:
+                    st.warning(f"Please provide both school name and year.")
+    
+    # Display editable education sections
+    display_education_section("Elementary", "elementary")
+    display_education_section("High School", "high_school")
+    display_education_section("Senior High", "senior_high")
+    display_education_section("College", "college")
 
-                st.write("**Seminars Attended:**")
-                for seminar in bio["seminars_attended"]:
-                    st.write(f"- {seminar}")
+with tab3:
+    st.subheader("Seminars Attended")
+    seminar = st.text_input("Seminar Name")
+    seminar_year = st.text_input("Seminar Year")
+    
+    if st.button("Add Seminar"):
+        if seminar and seminar_year:
+            st.session_state.bio_data["seminars_attended"].append({"seminar": seminar, "year": seminar_year})
+            st.success("Seminar added successfully!")
+        else:
+            st.warning("Please provide both seminar name and year.")
+    
+    st.write("### Seminars Attended")
+    for seminar in st.session_state.bio_data.get("seminars_attended", []):
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.write(f"- {seminar['seminar']} ({seminar['year']})")
+        with col2:
+            if st.button(f"Delete Seminar: {seminar['seminar']}", key=f"delete_seminar_{seminar['seminar']}"):
+                st.session_state.bio_data["seminars_attended"].remove(seminar)
+                st.experimental_rerun()
 
-                st.write("**Accomplishments:**")
-                for accomplishment in bio["accomplishments"]:
-                    st.write(f"- {accomplishment}")
+with tab4:
+    st.subheader("Accomplishments")
+    accomplishments_text = st.text_area(
+        "Add your accomplishments (one per line, starting with '-')", 
+        value="\n".join(st.session_state.bio_data.get("accomplishments", []))
+    )
+    
+    if st.button("Save Accomplishments"):
+        st.session_state.bio_data["accomplishments"] = [
+            line.strip() for line in accomplishments_text.split("\n") if line.strip()
+        ]
+        st.success("Accomplishments saved successfully!")
+    
+    st.write("### Accomplishments List")
+    for acc in st.session_state.bio_data.get("accomplishments", []):
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.write(f"- {acc}")
+        with col2:
+            if st.button(f"Delete Accomplishment: {acc}", key=f"delete_acc_{acc}"):
+                st.session_state.bio_data["accomplishments"].remove(acc)
+                st.experimental_rerun()
 
-                st.write("**Skills:**")
-                for skill in bio["skills"]:
-                    st.write(f"- {skill}")
+with tab5:
+    st.subheader("Upload Profile Image")
+    uploaded_image = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
+    
+    if uploaded_image:
+        image_path = f"uploaded_image_{uploaded_image.name}"
+        with open(image_path, "wb") as f:
+            f.write(uploaded_image.getbuffer())
+        st.session_state.bio_data["image"] = image_path
+        st.success("Image uploaded successfully!")
+    
+    if st.session_state.bio_data.get("image"):
+        st.image(st.session_state.bio_data["image"], caption="Uploaded Profile Image")
 
-                st.write("**Hobbies:**")
-                for hobby in bio["hobbies"]:
-                    st.write(f"- {hobby}")
+with tab6:
+    st.subheader("Complete Biography")
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        if st.session_state.bio_data.get("image"):
+            st.image(st.session_state.bio_data["image"], caption="Profile Image")
+        else:
+            st.write("No image uploaded.")
+    
+    with col2:
+        st.write(f"### Name: {st.session_state.bio_data.get('name', '')}")
+        st.write(f"### Age: {st.session_state.bio_data.get('age', '')}")
+        st.write(f"### Birthdate: {st.session_state.bio_data.get('birthdate', '')}")
+        st.write(f"### Address: {st.session_state.bio_data.get('address', '')}")
+        st.write(f"### Biography: {st.session_state.bio_data.get('bio', '')}")
+    
+    st.write("### Educational Attainment:")
+    for edu in st.session_state.bio_data.get("elementary", []):
+        st.write(f"- Elementary: {edu['school']} ({edu['year']})")
+    for edu in st.session_state.bio_data.get("high_school", []):
+        st.write(f"- High School: {edu['school']} ({edu['year']})")
+    for edu in st.session_state.bio_data.get("senior_high", []):
+        st.write(f"- Senior High: {edu['school']} ({edu['year']})")
+    for edu in st.session_state.bio_data.get("college", []):
+        st.write(f"- College: {edu['school']} ({edu['year']})")
+    
+    st.write("### Seminars Attended:")
+    for seminar in st.session_state.bio_data.get("seminars_attended", []):
+        st.write(f"- {seminar['seminar']} ({seminar['year']})")
 
-                # Display dynamic fields
-                for field, values in bio.items():
-                    if field not in ["type", "photo", "name", "birthdate", "address", "educational_attainment", "seminars_attended", "accomplishments", "skills", "hobbies"]:
-                        st.write(f"**{field}:**")
-                        for value in values:
-                            st.write(f"- {value}")
-
-# Main Function
-def main():
-    st.sidebar.title("Menu")
-    menu = st.sidebar.radio("Select an Option", ["Add Biography", "View All Biographies"])
-
-    init_session_state()
-
-    if menu == "Add Biography":
-        add_biography()
-    elif menu == "View All Biographies":
-        view_all_biographies()
-
-if __name__ == "__main__":
-    main()
+    st.write("### Accomplishments:")
+    for acc in st.session_state.bio_data.get("accomplishments", []):
+        st.write(f"- {acc}")
+    
+    # Create biography string for download
+    bio_string = create_bio_string()
+    
+    # Button to download the biography
+    st.download_button(
+        label="Download Biography",
+        data=bio_string,
+        file_name="biography.txt",
+        mime="text/plain"
+    )
